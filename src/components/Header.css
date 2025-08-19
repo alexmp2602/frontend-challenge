@@ -3,7 +3,7 @@
   background: #1a1a1a;
   color: white;
   padding: 16px 0;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   position: sticky;
   top: 0;
   z-index: 100;
@@ -90,15 +90,15 @@
   .header-content {
     gap: 16px;
   }
-  
+
   .nav {
     gap: 16px;
   }
-  
+
   .nav-link {
     padding: 6px 12px;
   }
-  
+
   .logo-text {
     display: none;
   }
@@ -108,4 +108,33 @@
   .nav {
     display: none;
   }
+}
+
+/* Cart badge */
+.cart-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cart-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 9999px;
+  background: #10b981; /* verde */
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  margin-left: 6px;
+}
+
+.cart-count {
+  margin-left: 6px;
+  color: rgba(255, 255, 255, 0.7); /* (0) cuando está vacío */
 }

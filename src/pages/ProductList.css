@@ -36,7 +36,7 @@
   background: white;
   border-radius: 12px;
   border: 1px solid #e2e8f0;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .stat-value {
@@ -92,11 +92,11 @@
     align-items: stretch;
     gap: 16px;
   }
-  
+
   .page-stats {
     justify-content: center;
   }
-  
+
   .products-grid {
     grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
     gap: 16px;
@@ -107,12 +107,114 @@
   .page-stats {
     gap: 12px;
   }
-  
+
   .stat-item {
     padding: 12px 16px;
   }
-  
+
   .products-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Mejoras implementadas */
+
+/* 1) Mejor foco accesible para elementos interactivos dentro de la página */
+.product-list-page :is(button, a, select, input):focus-visible {
+  outline: 3px solid #60a5fa; /* azul claro */
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* 2) Espaciado en el botón del empty state (por si en móviles queda pegado) */
+.empty-state .btn {
+  margin-top: 4px;
+}
+
+/* 3) Grid un poquito más compacto en pantallas medianas */
+@media (max-width: 992px) {
+  .products-grid {
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 20px;
+  }
+}
+
+/* 4) Respeta usuarios con 'reduced motion' (si hay animaciones en otros lados) */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ========== Skeleton Loading ========== */
+.skeleton-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.sk {
+  position: relative;
+  overflow: hidden;
+  background: #e5e7eb;
+  border-radius: 8px;
+}
+.sk::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.55),
+    transparent
+  );
+  animation: shimmer 1.2s infinite;
+}
+
+.sk-img {
+  height: 160px;
+  margin-bottom: 12px;
+}
+.sk-line {
+  height: 14px;
+  margin-bottom: 8px;
+}
+.sk-line.short {
+  width: 60%;
+}
+.sk-price {
+  height: 18px;
+  width: 40%;
+  margin: 10px 0;
+}
+.sk-btn {
+  height: 36px;
+  border-radius: 10px;
+}
+
+/* ========== Animaciones ========== */
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.fade-in > * {
+  animation: fadeIn 220ms ease-out both;
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

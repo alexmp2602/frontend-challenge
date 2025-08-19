@@ -1,16 +1,43 @@
-# 🎯 SWAG Frontend Challenge
+# SWAG Frontend Challenge – Solución de Alex Pereyra
 
-**Tiempo estimado:** 45-90 minutos  
-**Objetivo:** Crear un mini catálogo de productos funcional con React + TypeScript
+Este repositorio contiene **mi solución al challenge de Frontend Developer** propuesto por SWAG.
+
+## Links de la entrega
+- Repositorio: https://github.com/alexmp2602/frontend-challenge
+- Demo en Vercel: https://frontend-challenge-swag.vercel.app/
+
+## Notas Personales
+- Actualicé dependencias en `package.json` para compatibilidad con Node vXX.  
+- Corregí los bugs reportados en el enunciado.  
+- Funcionalidades implementadas:  
+   - Carrito de compras con persistencia en `localStorage`  
+   - Filtros avanzados (proveedor, rango de precios, reset)  
+   - Simulador de cotización con resumen exportable  
+   - Mejoras UX: loading states, validaciones y mensajes de error claros  
+   - Se agregaron pequeñas optimizaciones de accesibilidad y mobile.
+
+## Instalación Rápida
+
+npm install
+npm run dev
+
+## Build de Producción
+
+npm run build
+npm run preview
+
+# SWAG Frontend Challenge
+
+Tiempo estimado: 45-90 minutos
+Objetivo: Crear un mini catálogo de productos funcional con React + TypeScript.
 
 ---
 
-## 🚀 Comenzar
+## Comenzar
 
-```bash
 # 1. Clonar el repositorio
-git clone [URL_DEL_REPO]
-cd swag-challenge
+git clone https://github.com/alexmp2602/frontend-challenge
+cd frontend-challenge
 
 # 2. Instalar dependencias
 npm install
@@ -19,8 +46,14 @@ npm install
 npm run dev
 
 # 4. Abrir en el navegador
-# http://localhost:3000
-```
+http://localhost:3000
+
+---
+
+## Autor
+**Alex Pereyra**  
+- LinkedIn: https://linkedin.com/in/alex-pereyra-dev
+- Portafolio: https://www.alexpereyra.dev
 
 ---
 

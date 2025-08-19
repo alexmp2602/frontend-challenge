@@ -1,7 +1,18 @@
-import { Link } from 'react-router-dom'
-import './Header.css'
+import { Link } from "react-router-dom";
+import { useCart } from "../context/CartContext";
+import "./Header.css";
 
 const Header = () => {
+  const { count, subtotal } = useCart();
+
+  // Formato CLP sin decimales
+  const formatCLP = (n: number) =>
+    new Intl.NumberFormat("es-CL", {
+      style: "currency",
+      currency: "CLP",
+      maximumFractionDigits: 0,
+    }).format(n);
+
   return (
     <header className="header">
       <div className="container">
@@ -20,10 +31,26 @@ const Header = () => {
               <span className="material-icons">home</span>
               Catálogo
             </Link>
-            <button className="nav-link l1" onClick={() => alert('Función de carrito por implementar')}>
+
+            {/* Carrito (contador dinámico) */}
+            <Link
+              to="/cart"
+              className="nav-link l1 cart-button"
+              aria-label={`Carrito: ${count} ${count === 1 ? "item" : "items"}`}
+              title={
+                count > 0 ? `Subtotal: ${formatCLP(subtotal)}` : "Carrito vacío"
+              }
+            >
               <span className="material-icons">shopping_cart</span>
-              Carrito (0)
-            </button>
+              <span>Carrito</span>
+              {count > 0 ? (
+                <span className="cart-badge" aria-live="polite">
+                  {count}
+                </span>
+              ) : (
+                <span className="cart-count l1">(0)</span>
+              )}
+            </Link>
           </nav>
 
           {/* Actions */}
@@ -36,7 +63,7 @@ const Header = () => {
         </div>
       </div>
     </header>
-  )
-}
+  );
+};
 
-export default Header
+export default Header;

@@ -3,7 +3,7 @@
   background: white;
   border-radius: 12px;
   border: 1px solid #e2e8f0;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   overflow: hidden;
 }
 
@@ -231,25 +231,25 @@
   .calculator-content {
     padding: 20px;
   }
-  
+
   .price-breaks {
     grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
     gap: 8px;
   }
-  
+
   .price-break {
     padding: 12px;
   }
-  
+
   .calculator-actions {
     flex-direction: column;
   }
-  
+
   .quantity-input-group {
     flex-direction: column;
     align-items: stretch;
   }
-  
+
   .quantity-input {
     max-width: none;
   }
@@ -260,16 +260,41 @@
   .calculator-content {
     padding: 16px;
   }
-  
+
   .price-breaks {
     grid-template-columns: 1fr;
   }
-  
+
   .calculator-content {
     gap: 20px;
   }
-  
+
   .price-summary {
     padding: 16px;
+  }
+}
+
+.quote-form {
+  margin-top: 16px;
+}
+.quote-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 8px;
+}
+.quote-grid input {
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+.quote-actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 12px;
+}
+@media (max-width: 640px) {
+  .quote-grid {
+    grid-template-columns: 1fr;
   }
 }
