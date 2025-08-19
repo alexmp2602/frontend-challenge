@@ -1,5 +1,8 @@
+// src/pages/CartPage.tsx
 import { Link } from "react-router-dom";
+import type { KeyboardEvent } from "react";
 import { useCart } from "../context/CartContext";
+import { useToast } from "../context/ToastContext";
 import "./CartPage.css";
 
 // Formato CLP sin decimales
@@ -18,12 +21,13 @@ const clampQty = (val: number, stock?: number) => {
 };
 
 // Evita caracteres no válidos en <input type="number">
-const preventInvalidChars = (e: React.KeyboardEvent<HTMLInputElement>) => {
+const preventInvalidChars = (e: KeyboardEvent<HTMLInputElement>) => {
   if (["e", "E", "+", "-", "."].includes(e.key)) e.preventDefault();
 };
 
 const CartPage = () => {
   const { items, subtotal, update, remove, clear } = useCart();
+  const toast = useToast();
   const totalItems = items.reduce((acc, it) => acc + it.quantity, 0);
   const isEmpty = items.length === 0;
 
@@ -62,14 +66,16 @@ const CartPage = () => {
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
+
+    toast.success("Carrito exportado como JSON.");
   };
 
   // Vista imprimible (para PDF del navegador)
   const printCart = () => {
     const win = window.open("", "_blank", "width=900,height=1100");
     if (!win) {
-      alert(
-        "No se pudo abrir la ventana de impresión. Habilita pop-ups e inténtalo otra vez."
+      toast.error(
+        "No se pudo abrir la ventana de impresión. Habilita pop-ups e inténtalo de nuevo."
       );
       return;
     }
@@ -148,6 +154,7 @@ const CartPage = () => {
 </body>
 </html>`);
     win.document.close();
+    toast.info("Abriendo vista de impresión…");
   };
 
   if (isEmpty) {
@@ -235,11 +242,23 @@ const CartPage = () => {
                               parseInt(e.target.value, 10),
                               it.stock
                             );
-                            // 🔴 PASAMOS color/talle para identificar la variante correcta
                             update(it.id, next, {
                               color: it.selectedColor,
                               size: it.selectedSize,
                             });
+                          }}
+                          onBlur={(e) => {
+                            // normaliza si queda vacío o 0
+                            const next = clampQty(
+                              parseInt(e.target.value, 10),
+                              it.stock
+                            );
+                            if (next !== it.quantity) {
+                              update(it.id, next, {
+                                color: it.selectedColor,
+                                size: it.selectedSize,
+                              });
+                            }
                           }}
                         />
                       </div>
@@ -254,12 +273,13 @@ const CartPage = () => {
                         className="icon-btn"
                         aria-label="Quitar del carrito"
                         title="Quitar"
-                        onClick={() =>
+                        onClick={() => {
                           remove(it.id, {
                             color: it.selectedColor,
                             size: it.selectedSize,
-                          })
-                        }
+                          });
+                          toast.info("Producto eliminado del carrito.");
+                        }}
                       >
                         <span className="material-icons">delete</span>
                       </button>
@@ -274,7 +294,13 @@ const CartPage = () => {
                 <span className="material-icons">arrow_back</span>
                 Seguir comprando
               </Link>
-              <button className="btn btn-danger cta1" onClick={clear}>
+              <button
+                className="btn btn-danger cta1"
+                onClick={() => {
+                  clear();
+                  toast.warning("Carrito vaciado.");
+                }}
+              >
                 <span className="material-icons">delete_sweep</span>
                 Vaciar carrito
               </button>
@@ -282,7 +308,7 @@ const CartPage = () => {
           </div>
 
           {/* Resumen */}
-          <aside className="cart-summary">
+          <aside className="cart-summary" aria-live="polite">
             <div className="summary-card">
               <h3 className="p1-medium">Resumen</h3>
               <div className="summary-row">

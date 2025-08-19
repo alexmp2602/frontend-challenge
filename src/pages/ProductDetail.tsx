@@ -4,6 +4,7 @@ import { products } from "../data/products";
 import { Product } from "../types/Product";
 import PricingCalculator from "../components/PricingCalculator";
 import { useCart } from "../context/CartContext";
+import { useToast } from "../context/ToastContext"; // ✅ NEW
 import "./ProductDetail.css";
 
 /** Límites seguros para la cantidad */
@@ -17,15 +18,21 @@ function getQtyLimits(product: Product) {
   return { min, max };
 }
 
+const preventInvalidChars = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  if (["e", "E", "+", "-", "."].includes(e.key)) e.preventDefault();
+};
+
 const ProductDetail = () => {
-  const { id } = useParams(); // puede venir undefined
+  const { id } = useParams();
   const [product, setProduct] = useState<Product | null>(null);
   const [selectedColor, setSelectedColor] = useState("");
   const [selectedSize, setSelectedSize] = useState("");
   const [quantity, setQuantity] = useState(1);
-  const { add } = useCart();
 
-  // ⚠️ Hook SIEMPRE llamado (con fallback cuando product es null)
+  const { add } = useCart();
+  const { show } = useToast(); // ✅ NEW
+
+  // Hook SIEMPRE llamado (con fallback cuando product es null)
   const { min, max } = useMemo(() => {
     if (!product) return { min: 1, max: 10000 };
     return getQtyLimits(product);
@@ -42,7 +49,7 @@ const ProductDetail = () => {
       setProduct(found);
       if (found.colors?.length) setSelectedColor(found.colors[0]);
       if (found.sizes?.length) setSelectedSize(found.sizes[0]);
-      setQuantity(getQtyLimits(found).min); // cantidad mínima válida del producto
+      setQuantity(getQtyLimits(found).min);
     } else {
       setProduct(null);
     }
@@ -61,15 +68,20 @@ const ProductDetail = () => {
     quantity <= product.stock;
 
   const handleAddToCart = () => {
-    if (!product || !canAddToCart) return;
+    if (!product || !canAddToCart) {
+      show("Producto no disponible", "error");
+      return;
+    }
+
     add(product, quantity, {
       color: selectedColor || undefined,
       size: selectedSize || undefined,
     });
-    alert("Producto agregado al carrito");
+
+    show("Producto agregado al carrito", "success"); // ✅ toast en lugar de alert
   };
 
-  // UI de no encontrado (los hooks ya se llamaron arriba, así no violamos las reglas)
+  // UI de no encontrado
   if (!product) {
     return (
       <div className="container">
@@ -224,9 +236,15 @@ const ProductDetail = () => {
                     type="number"
                     value={quantity}
                     onChange={(e) => onQtyInput(e.target.value)}
+                    onKeyDown={preventInvalidChars}
+                    onWheel={(e) =>
+                      (e.currentTarget as HTMLInputElement).blur()
+                    }
                     className="quantity-input"
                     min={min}
                     max={max}
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                   />
                   <button
                     onClick={() => setQuantity(Math.min(max, quantity + 1))}

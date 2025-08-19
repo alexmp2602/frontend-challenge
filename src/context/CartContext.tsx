@@ -1,10 +1,11 @@
+// src/context/CartContext.tsx
 import {
   createContext,
   useContext,
   useEffect,
   useMemo,
   useState,
-  ReactNode,
+  type ReactNode,
 } from "react";
 import { CartItem, PriceBreak, Product } from "../types/Product";
 
@@ -24,7 +25,7 @@ interface CartContextValue {
   count: number;
   subtotal: number;
   add: (product: Product, quantity: number, options?: AddOptions) => void;
-  update: (productId: number, quantity: number, options?: MatchOptions) => void; // NEW
+  update: (productId: number, quantity: number, options?: MatchOptions) => void;
   remove: (productId: number, options?: MatchOptions) => void;
   clear: () => void;
 }
@@ -32,6 +33,10 @@ interface CartContextValue {
 const CartContext = createContext<CartContextValue | undefined>(undefined);
 
 const STORAGE_KEY = "swag_cart_v1";
+const HARD_MAX = 10000;
+
+const clampQty = (q: number, stock?: number) =>
+  Math.max(1, Math.min(q, stock ?? HARD_MAX));
 
 // Precio unitario óptimo según breaks
 function bestUnitPrice(
@@ -43,6 +48,15 @@ function bestUnitPrice(
   const eligible = breaks.filter((b) => qty >= b.minQty);
   if (eligible.length === 0) return basePrice;
   return eligible.reduce((min, b) => Math.min(min, b.price), Infinity);
+}
+
+// Coincidencia consistente por producto + variante
+function sameVariant(it: CartItem, id: number, opts?: MatchOptions) {
+  if (it.id !== id) return false;
+  if (opts?.color !== undefined && it.selectedColor !== opts.color)
+    return false;
+  if (opts?.size !== undefined && it.selectedSize !== opts.size) return false;
+  return true;
 }
 
 export function CartProvider({ children }: { children: ReactNode }) {
@@ -60,27 +74,31 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [items]);
 
   const add: CartContextValue["add"] = (product, quantity, options) => {
-    if (quantity <= 0) return;
+    // aplica clamp usando stock del producto
+    const initialQty = clampQty(quantity, product.stock);
+    if (initialQty <= 0) return;
 
-    const unit =
+    const computedUnit =
       options?.overrideUnitPrice ??
-      bestUnitPrice(quantity, product.basePrice, product.priceBreaks);
+      bestUnitPrice(initialQty, product.basePrice, product.priceBreaks);
 
     setItems((prev) => {
-      const idx = prev.findIndex(
-        (it) =>
-          it.id === product.id &&
-          it.selectedColor === (options?.color ?? undefined) &&
-          it.selectedSize === (options?.size ?? undefined)
+      const idx = prev.findIndex((it) =>
+        sameVariant(it, product.id, {
+          color: options?.color,
+          size: options?.size,
+        })
       );
 
       if (idx >= 0) {
-        const nextQty = prev[idx].quantity + quantity;
-        const nextUnit = options?.overrideUnitPrice
-          ? unit
-          : bestUnitPrice(nextQty, product.basePrice, product.priceBreaks);
+        const current = prev[idx];
+        const nextQty = clampQty(current.quantity + initialQty, product.stock);
+        const nextUnit =
+          options?.overrideUnitPrice ??
+          bestUnitPrice(nextQty, product.basePrice, product.priceBreaks);
+
         const updated: CartItem = {
-          ...prev[idx],
+          ...current,
           quantity: nextQty,
           unitPrice: nextUnit,
           totalPrice: nextQty * nextUnit,
@@ -88,31 +106,27 @@ export function CartProvider({ children }: { children: ReactNode }) {
         const copy = [...prev];
         copy[idx] = updated;
         return copy;
+        // nota: si el clamp recorta, no pasamos del stock
       }
 
       const newItem: CartItem = {
         ...product,
-        quantity,
+        quantity: initialQty,
         selectedColor: options?.color,
         selectedSize: options?.size,
-        unitPrice: unit,
-        totalPrice: unit * quantity,
+        unitPrice: computedUnit,
+        totalPrice: computedUnit * initialQty,
       };
       return [...prev, newItem];
     });
   };
 
-  // NEW: actualizar cantidad (si <=0, elimina)
+  // actualizar cantidad (si <=0, elimina)
   const update: CartContextValue["update"] = (productId, quantity, options) => {
     setItems((prev) => {
       const out: CartItem[] = [];
       for (const it of prev) {
-        const isMatch =
-          it.id === productId &&
-          (options?.color ?? it.selectedColor) === it.selectedColor &&
-          (options?.size ?? it.selectedSize) === it.selectedSize;
-
-        if (!isMatch) {
+        if (!sameVariant(it, productId, options)) {
           out.push(it);
           continue;
         }
@@ -123,7 +137,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
             : Math.max(0, quantity);
 
         if (clamped <= 0) {
-          // eliminar
+          // eliminar línea
           continue;
         }
 
@@ -141,14 +155,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const remove: CartContextValue["remove"] = (productId, options) => {
     setItems((prev) =>
-      prev.filter(
-        (it) =>
-          !(
-            it.id === productId &&
-            (options?.color ?? it.selectedColor) === it.selectedColor &&
-            (options?.size ?? it.selectedSize) === it.selectedSize
-          )
-      )
+      prev.filter((it) => !sameVariant(it, productId, options))
     );
   };
 
@@ -169,7 +176,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     count,
     subtotal,
     add,
-    update, // NEW
+    update,
     remove,
     clear,
   };

@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Product, PriceBreak } from "../types/Product";
 import { useCart } from "../context/CartContext";
-import { useToast } from "../context/ToastContext"; // NEW
+import { useToast } from "../context/ToastContext"; // ⬅️ NEW
 import "./PricingCalculator.css";
 
 interface PricingCalculatorProps {
@@ -37,11 +37,11 @@ function applicableBreak(qty: number, breaks?: PriceBreak[]) {
 /** Límites para el input de cantidad */
 function getQtyLimits(product: Product) {
   const min = Math.max(1, product.minQuantity ?? 1);
-  const hardMax = 10000;
-  const candidates = [product.maxQuantity, product.stock, hardMax].filter(
+  const HARD_MAX = 10000;
+  const candidates = [product.maxQuantity, product.stock, HARD_MAX].filter(
     (x): x is number => typeof x === "number" && x > 0
   );
-  const max = candidates.length ? Math.min(...candidates) : hardMax;
+  const max = candidates.length ? Math.min(...candidates) : HARD_MAX;
   return { min, max };
 }
 
@@ -51,7 +51,7 @@ const PricingCalculator = ({ product }: PricingCalculatorProps) => {
   const { min, max } = getQtyLimits(product);
   const [quantity, setQuantity] = useState<number>(min);
   const { add } = useCart();
-  const { show } = useToast(); // NEW
+  const toast = useToast(); // ⬅️ NEW
 
   // Formulario para la cotización
   const [form, setForm] = useState({
@@ -79,7 +79,23 @@ const PricingCalculator = ({ product }: PricingCalculatorProps) => {
 
   const onQtyChange = (val: string) => {
     const raw = parseInt(val, 10);
-    const next = isNaN(raw) ? min : Math.max(min, Math.min(max, raw));
+    if (isNaN(raw)) {
+      setQuantity(min);
+      return;
+    }
+    let next = raw;
+    if (raw < min) {
+      next = min;
+      toast?.warning?.(`Cantidad mínima: ${min}`);
+    } else if (raw > max) {
+      next = max;
+      // Si el límite lo impone el stock, avisamos
+      const reason =
+        product.stock && product.stock < (product.maxQuantity ?? Infinity)
+          ? `stock disponible: ${product.stock}`
+          : `máximo permitido: ${max}`;
+      toast?.warning?.(`Se ajustó la cantidad al ${reason}`);
+    }
     setQuantity(next);
   };
 
@@ -137,15 +153,17 @@ const PricingCalculator = ({ product }: PricingCalculatorProps) => {
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
+
+    toast?.success?.("Resumen de cotización exportado (JSON).");
   };
 
-  // Vista imprimible (para "Exportar PDF" desde el diálogo del navegador)
+  // Vista imprimible (para “Exportar PDF” desde el navegador)
   const printQuote = () => {
     const win = window.open("", "_blank", "width=820,height=980");
     if (!win) {
-      alert(
-        "No se pudo abrir la ventana de impresión. Habilita pop-ups e inténtalo de nuevo."
-      ); // NEW
+      toast?.error?.(
+        "No se pudo abrir la ventana de impresión. Habilitá pop-ups e intentá de nuevo."
+      );
       return;
     }
 
@@ -201,6 +219,8 @@ const PricingCalculator = ({ product }: PricingCalculatorProps) => {
 </body>
 </html>`);
     win.document.close();
+
+    toast?.info?.("Abriendo vista de impresión…");
   };
 
   return (
@@ -227,16 +247,13 @@ const PricingCalculator = ({ product }: PricingCalculatorProps) => {
               className="quantity-input p1"
               min={min}
               max={max}
-              step={1} // NEW
-              inputMode="numeric" // NEW
-              pattern="[0-9]*" // NEW
-              onWheel={(e) => (e.currentTarget as HTMLInputElement).blur()} // NEW
+              inputMode="numeric"
+              pattern="[0-9]*"
             />
             <span className="quantity-unit l1">unidades</span>
           </div>
           <small className="l1">
             Entre {min} y {max} unidades
-            {quantity === max && " · Alcanzaste el máximo disponible"}
           </small>
         </div>
 
@@ -257,9 +274,13 @@ const PricingCalculator = ({ product }: PricingCalculatorProps) => {
                       className={`price-break ${isActive ? "active" : ""} ${
                         isSelected ? "selected" : ""
                       }`}
-                      onClick={() =>
-                        setQuantity(Math.max(min, Math.min(max, pb.minQty)))
-                      }
+                      onClick={() => {
+                        const next = Math.max(min, Math.min(max, pb.minQty));
+                        setQuantity(next);
+                        toast?.info?.(
+                          `Aplicado precio por volumen desde ${pb.minQty}+`
+                        );
+                      }}
                       aria-pressed={isSelected}
                     >
                       <div className="break-quantity l1">
@@ -316,7 +337,6 @@ const PricingCalculator = ({ product }: PricingCalculatorProps) => {
             <input
               className="p1"
               placeholder="Empresa"
-              autoComplete="organization" // NEW
               value={form.company}
               onChange={(e) => setForm({ ...form, company: e.target.value })}
               required
@@ -324,16 +344,13 @@ const PricingCalculator = ({ product }: PricingCalculatorProps) => {
             <input
               className="p1"
               placeholder="Nombre y apellido"
-              autoComplete="name" // NEW
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               required
             />
             <input
               className="p1"
-              type="email" // NEW
               placeholder="Email"
-              autoComplete="email" // NEW
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
               aria-invalid={!!form.email && !emailOk}
@@ -378,8 +395,9 @@ const PricingCalculator = ({ product }: PricingCalculatorProps) => {
           <button
             className="btn btn-secondary cta1"
             onClick={() => {
-              alert(
-                `Cotización solicitada para ${quantity} unidades de ${product.name}`
+              // simulación de solicitud de cotización “oficial”
+              toast?.info?.(
+                `Solicitud enviada por ${quantity} u. de ${product.name}`
               );
             }}
           >
@@ -397,10 +415,9 @@ const PricingCalculator = ({ product }: PricingCalculatorProps) => {
             }
             onClick={() => {
               add(product, quantity);
-              show(`Agregado: ${quantity} × ${product.name}`, {
-                type: "success",
-                duration: 2200,
-              }); // NEW
+              toast?.success?.(
+                `Agregado: ${quantity} × ${product.name} al carrito`
+              );
             }}
           >
             <span className="material-icons">shopping_cart</span>

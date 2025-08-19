@@ -1,23 +1,31 @@
-import { Routes, Route } from 'react-router-dom'
-import Header from './components/Header'
-import ProductList from './pages/ProductList'
-import ProductDetail from './pages/ProductDetail'
-import CartPage from './pages/CartPage'
-import './App.css'
+import { Routes, Route } from "react-router-dom";
+import { Suspense, lazy } from "react";
+import Header from "./components/Header";
+import ScrollToTop from "./components/ScrollToTop";
+import "./App.css";
+
+const ProductList = lazy(() => import("./pages/ProductList"));
+const ProductDetail = lazy(() => import("./pages/ProductDetail"));
+const CartPage = lazy(() => import("./pages/CartPage"));
+const NotFound = lazy(() => import("./pages/NotFound"));
 
 function App() {
   return (
     <div className="App">
       <Header />
+      <ScrollToTop />
       <main>
-        <Routes>
-          <Route path="/" element={<ProductList />} />
-          <Route path="/product/:id" element={<ProductDetail />} />
-          <Route path="/cart" element={<CartPage />} />
-        </Routes>
+        <Suspense fallback={<div className="container p1">Cargando…</div>}>
+          <Routes>
+            <Route path="/" element={<ProductList />} />
+            <Route path="/product/:id" element={<ProductDetail />} />
+            <Route path="/cart" element={<CartPage />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Suspense>
       </main>
     </div>
-  )
+  );
 }
 
-export default App
+export default App;
