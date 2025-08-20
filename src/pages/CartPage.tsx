@@ -5,7 +5,7 @@ import { useCart } from "../context/CartContext";
 import { useToast } from "../context/ToastContext";
 import "./CartPage.css";
 
-// Formato CLP sin decimales
+// CLP sin decimales
 const formatCLP = (n: number) =>
   new Intl.NumberFormat("es-CL", {
     style: "currency",
@@ -13,14 +13,14 @@ const formatCLP = (n: number) =>
     maximumFractionDigits: 0,
   }).format(n);
 
-// Sanitiza cantidad (>=1 y <= stock/máximo razonable)
+// Cantidad: clamp >=1 y <= stock/HARD_MAX
 const clampQty = (val: number, stock?: number) => {
   const HARD_MAX = 10000;
   const max = Math.min(stock ?? HARD_MAX, HARD_MAX);
   return Math.max(1, Math.min(max, isNaN(val) ? 1 : val));
 };
 
-// Evita caracteres no válidos en <input type="number">
+// Evita chars inválidos en <input type="number">
 const preventInvalidChars = (e: KeyboardEvent<HTMLInputElement>) => {
   if (["e", "E", "+", "-", "."].includes(e.key)) e.preventDefault();
 };
@@ -29,9 +29,10 @@ const CartPage = () => {
   const { items, subtotal, update, remove, clear } = useCart();
   const toast = useToast();
   const totalItems = items.reduce((acc, it) => acc + it.quantity, 0);
+  const itemsLabel = totalItems === 1 ? "item" : "items";
   const isEmpty = items.length === 0;
 
-  // Exportar JSON del carrito completo
+  // Exportar JSON
   const exportCartJSON = () => {
     const payload = {
       cartId: `cart-${Date.now()}`,
@@ -48,10 +49,7 @@ const CartPage = () => {
         color: it.selectedColor ?? null,
         size: it.selectedSize ?? null,
       })),
-      totals: {
-        items: totalItems,
-        subtotal,
-      },
+      totals: { items: totalItems, subtotal },
       note: "Pre-cotización generada desde SWAG Challenge (frontend).",
     };
 
@@ -70,12 +68,12 @@ const CartPage = () => {
     toast.success("Carrito exportado como JSON.");
   };
 
-  // Vista imprimible (para PDF del navegador)
+  // Imprimir / PDF
   const printCart = () => {
     const win = window.open("", "_blank", "width=900,height=1100");
     if (!win) {
       toast.error(
-        "No se pudo abrir la ventana de impresión. Habilita pop-ups e inténtalo de nuevo."
+        "No se pudo abrir la ventana de impresión. Habilitá pop-ups e intentá de nuevo."
       );
       return;
     }
@@ -180,9 +178,11 @@ const CartPage = () => {
     <div className="cart-page">
       <div className="container">
         <div className="cart-layout">
-          {/* Lista de items */}
+          {/* Items */}
           <div className="cart-card">
-            <h2 className="p1-medium">Carrito ({totalItems} items)</h2>
+            <h2 className="p1-medium">
+              Carrito ({totalItems} {itemsLabel})
+            </h2>
             <div className="cart-list">
               {items.map((it) => (
                 <div
@@ -192,7 +192,7 @@ const CartPage = () => {
                   className="cart-item"
                 >
                   <div className="thumb">
-                    <div className="thumb-placeholder">
+                    <div className="thumb-placeholder" aria-hidden="true">
                       <span className="material-icons">image</span>
                     </div>
                   </div>
@@ -248,7 +248,6 @@ const CartPage = () => {
                             });
                           }}
                           onBlur={(e) => {
-                            // normaliza si queda vacío o 0
                             const next = clampQty(
                               parseInt(e.target.value, 10),
                               it.stock
@@ -260,10 +259,15 @@ const CartPage = () => {
                               });
                             }
                           }}
+                          aria-label={`Cantidad para ${it.name}`}
+                          title="Editar cantidad"
                         />
                       </div>
 
-                      <div className="line-total h3">
+                      <div
+                        className="line-total h3"
+                        aria-label="Total de línea"
+                      >
                         {formatCLP(
                           (it.unitPrice ?? it.basePrice) * it.quantity
                         )}
@@ -271,7 +275,7 @@ const CartPage = () => {
 
                       <button
                         className="icon-btn"
-                        aria-label="Quitar del carrito"
+                        aria-label={`Quitar ${it.name} del carrito`}
                         title="Quitar"
                         onClick={() => {
                           remove(it.id, {
@@ -290,12 +294,17 @@ const CartPage = () => {
             </div>
 
             <div className="cart-actions">
-              <Link to="/" className="btn btn-outline cta1">
+              <Link
+                to="/"
+                className="btn btn-outline cta1"
+                title="Volver al catálogo"
+              >
                 <span className="material-icons">arrow_back</span>
                 Seguir comprando
               </Link>
               <button
                 className="btn btn-danger cta1"
+                title="Vaciar todo el carrito"
                 onClick={() => {
                   clear();
                   toast.warning("Carrito vaciado.");
@@ -323,11 +332,16 @@ const CartPage = () => {
                 <button
                   className="btn btn-outline cta1"
                   onClick={exportCartJSON}
+                  title="Descargar JSON del carrito"
                 >
                   <span className="material-icons">download</span>
                   Exportar JSON
                 </button>
-                <button className="btn btn-primary cta1" onClick={printCart}>
+                <button
+                  className="btn btn-primary cta1"
+                  onClick={printCart}
+                  title="Imprimir o exportar a PDF"
+                >
                   <span className="material-icons">picture_as_pdf</span>
                   Imprimir / PDF
                 </button>

@@ -1,14 +1,14 @@
 import { useMemo, useState } from "react";
 import { Product, PriceBreak } from "../types/Product";
 import { useCart } from "../context/CartContext";
-import { useToast } from "../context/ToastContext"; // ⬅️ NEW
+import { useToast } from "../context/ToastContext";
 import "./PricingCalculator.css";
 
 interface PricingCalculatorProps {
   product: Product;
 }
 
-// CLP currency (no decimals for CLP)
+// CLP (sin decimales)
 const formatCLP = (n: number) =>
   new Intl.NumberFormat("es-CL", {
     style: "currency",
@@ -16,7 +16,7 @@ const formatCLP = (n: number) =>
     maximumFractionDigits: 0,
   }).format(n);
 
-/** Devuelve el menor precio unitario elegible según la cantidad */
+/** Menor precio unitario elegible según cantidad */
 function bestUnitPrice(qty: number, basePrice: number, breaks?: PriceBreak[]) {
   if (!breaks || breaks.length === 0) return basePrice;
   const eligible = breaks.filter((b) => qty >= b.minQty);
@@ -24,7 +24,7 @@ function bestUnitPrice(qty: number, basePrice: number, breaks?: PriceBreak[]) {
   return eligible.reduce((min, b) => Math.min(min, b.price), Infinity);
 }
 
-/** Devuelve el break aplicable (mayor minQty <= qty), si existe */
+/** Break aplicable (mayor minQty <= qty) */
 function applicableBreak(qty: number, breaks?: PriceBreak[]) {
   if (!breaks || breaks.length === 0) return null;
   return (
@@ -34,7 +34,7 @@ function applicableBreak(qty: number, breaks?: PriceBreak[]) {
   );
 }
 
-/** Límites para el input de cantidad */
+/** Límites de cantidad */
 function getQtyLimits(product: Product) {
   const min = Math.max(1, product.minQuantity ?? 1);
   const HARD_MAX = 10000;
@@ -51,9 +51,9 @@ const PricingCalculator = ({ product }: PricingCalculatorProps) => {
   const { min, max } = getQtyLimits(product);
   const [quantity, setQuantity] = useState<number>(min);
   const { add } = useCart();
-  const toast = useToast(); // ⬅️ NEW
+  const toast = useToast();
 
-  // Formulario para la cotización
+  // Form cotización
   const [form, setForm] = useState({
     company: "",
     name: "",
@@ -61,7 +61,7 @@ const PricingCalculator = ({ product }: PricingCalculatorProps) => {
     notes: "",
   });
 
-  // Valores derivados
+  // Derivados
   const unitPrice = useMemo(
     () => bestUnitPrice(quantity, product.basePrice, product.priceBreaks),
     [quantity, product.basePrice, product.priceBreaks]
@@ -89,7 +89,6 @@ const PricingCalculator = ({ product }: PricingCalculatorProps) => {
       toast?.warning?.(`Cantidad mínima: ${min}`);
     } else if (raw > max) {
       next = max;
-      // Si el límite lo impone el stock, avisamos
       const reason =
         product.stock && product.stock < (product.maxQuantity ?? Infinity)
           ? `stock disponible: ${product.stock}`
@@ -115,7 +114,7 @@ const PricingCalculator = ({ product }: PricingCalculatorProps) => {
     quantity >= min &&
     quantity <= max;
 
-  // Exportar JSON de la cotización
+  // Export JSON
   const exportJSON = () => {
     const payload = {
       quoteId: `${product.sku}-${Date.now()}`,
@@ -157,8 +156,18 @@ const PricingCalculator = ({ product }: PricingCalculatorProps) => {
     toast?.success?.("Resumen de cotización exportado (JSON).");
   };
 
-  // Vista imprimible (para “Exportar PDF” desde el navegador)
+  // Imprimir / PDF
   const printQuote = () => {
+    const unitCLP = formatCLP(unitPrice);
+    const totalCLP = formatCLP(currentTotal);
+
+    const discountRow =
+      discountPercent > 0
+        ? `<div class="row"><span>Descuento</span><strong>-${discountPercent.toFixed(
+            1
+          )}%</strong></div>`
+        : "";
+
     const win = window.open("", "_blank", "width=820,height=980");
     if (!win) {
       toast?.error?.(
@@ -169,57 +178,22 @@ const PricingCalculator = ({ product }: PricingCalculatorProps) => {
 
     win.document.write(`<!doctype html>
 <html lang="es">
-<head>
-<meta charset="utf-8" />
-<title>Cotización - ${product.name}</title>
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<style>
-  body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji'; padding: 24px; color: #111827; }
-  h1 { margin: 0 0 4px; font-size: 20px; }
-  h2 { margin: 16px 0 8px; font-size: 16px; }
-  .muted { color: #6b7280; }
-  .card { border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px; margin: 12px 0; }
-  .row { display: flex; justify-content: space-between; margin: 6px 0; }
-  .total { font-weight: 700; font-size: 18px; }
-  .small { font-size: 12px; color: #6b7280; }
-</style>
-</head>
+<head>…</head>
 <body>
-  <h1>SWAG Chile – Cotización</h1>
-  <div class="small muted">${new Date().toLocaleString("es-CL")}</div>
-
-  <div class="card">
-    <h2>Cliente</h2>
-    <div>${form.company}</div>
-    <div>${form.name} – ${form.email}</div>
-    ${form.notes ? `<div class="small">Notas: ${form.notes}</div>` : ""}
-  </div>
-
+  …
   <div class="card">
     <h2>Producto</h2>
     <div>${product.name} <span class="small">(${product.sku})</span></div>
     <div class="row"><span>Cantidad</span><strong>${quantity} u.</strong></div>
-    <div class="row"><span>Precio unitario</span><strong>${formatCLP(
-      unitPrice
-    )}</strong></div>
-    ${
-      discountPercent > 0
-        ? `<div class="row"><span>Descuento</span><strong>-${discountPercent.toFixed(
-            1
-          )}%</strong></div>`
-        : ""
-    }
-    <div class="row total"><span>Total</span><span>${formatCLP(
-      currentTotal
-    )}</span></div>
+    <div class="row"><span>Precio unitario</span><strong>${unitCLP}</strong></div>
+    ${discountRow}
+    <div class="row total"><span>Total</span><span>${totalCLP}</span></div>
     <div class="small muted">Moneda: CLP. Los precios no incluyen envío ni impuestos.</div>
   </div>
-
   <script>window.addEventListener('load', () => setTimeout(() => window.print(), 200));</script>
 </body>
 </html>`);
     win.document.close();
-
     toast?.info?.("Abriendo vista de impresión…");
   };
 
@@ -299,7 +273,7 @@ const PricingCalculator = ({ product }: PricingCalculatorProps) => {
           </div>
         )}
 
-        {/* Resumen de precio */}
+        {/* Resumen */}
         <div className="price-summary">
           <div className="summary-row">
             <span className="summary-label p1">Precio unitario:</span>
@@ -330,7 +304,7 @@ const PricingCalculator = ({ product }: PricingCalculatorProps) => {
           </div>
         </div>
 
-        {/* Formulario de cotización */}
+        {/* Form cotización */}
         <div className="quote-form">
           <h4 className="p1-medium">Datos para la cotización</h4>
           <div className="quote-grid">
@@ -395,7 +369,6 @@ const PricingCalculator = ({ product }: PricingCalculatorProps) => {
           <button
             className="btn btn-secondary cta1"
             onClick={() => {
-              // simulación de solicitud de cotización “oficial”
               toast?.info?.(
                 `Solicitud enviada por ${quantity} u. de ${product.name}`
               );
@@ -425,7 +398,7 @@ const PricingCalculator = ({ product }: PricingCalculatorProps) => {
           </button>
         </div>
 
-        {/* Info adicional */}
+        {/* Info extra */}
         <div className="additional-info">
           <div className="info-item">
             <span className="material-icons">local_shipping</span>

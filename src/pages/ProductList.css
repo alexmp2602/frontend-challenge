@@ -1,9 +1,11 @@
-/* Product List Page Styles */
+/* Product List Page – Estilos */
+
+/* Página */
 .product-list-page {
   min-height: calc(100vh - 80px);
 }
 
-/* Page Header */
+/* Encabezado de página */
 .page-header {
   display: flex;
   justify-content: space-between;
@@ -25,6 +27,7 @@
   color: #64748b;
 }
 
+/* Métricas */
 .page-stats {
   display: flex;
   gap: 24px;
@@ -33,7 +36,7 @@
 .stat-item {
   text-align: center;
   padding: 16px 20px;
-  background: white;
+  background: #fff;
   border-radius: 12px;
   border: 1px solid #e2e8f0;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -49,7 +52,7 @@
   color: #64748b;
 }
 
-/* Products Section */
+/* Sección de productos */
 .products-section {
   margin-top: 24px;
 }
@@ -60,11 +63,11 @@
   gap: 24px;
 }
 
-/* Empty State */
+/* Estado vacío */
 .empty-state {
   text-align: center;
   padding: 80px 20px;
-  background: white;
+  background: #fff;
   border-radius: 12px;
   border: 1px solid #e2e8f0;
 }
@@ -86,6 +89,15 @@
 }
 
 /* Responsive */
+
+@media (max-width: 992px) {
+  /* Grid un poco más compacto en pantallas medianas */
+  .products-grid {
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 20px;
+  }
+}
+
 @media (max-width: 768px) {
   .page-header {
     flex-direction: column;
@@ -107,39 +119,29 @@
   .page-stats {
     gap: 12px;
   }
-
   .stat-item {
     padding: 12px 16px;
   }
-
   .products-grid {
     grid-template-columns: 1fr;
   }
 }
 
-/* Mejoras implementadas */
+/* Accesibilidad y micro-mejoras */
 
-/* 1) Mejor foco accesible para elementos interactivos dentro de la página */
+/* Foco visible en controles interactivos */
 .product-list-page :is(button, a, select, input):focus-visible {
   outline: 3px solid #60a5fa; /* azul claro */
   outline-offset: 2px;
   border-radius: 6px;
 }
 
-/* 2) Espaciado en el botón del empty state (por si en móviles queda pegado) */
+/* Espaciado del botón en estado vacío (móvil) */
 .empty-state .btn {
   margin-top: 4px;
 }
 
-/* 3) Grid un poquito más compacto en pantallas medianas */
-@media (max-width: 992px) {
-  .products-grid {
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap: 20px;
-  }
-}
-
-/* 4) Respeta usuarios con 'reduced motion' (si hay animaciones en otros lados) */
+/* Respeta usuarios con “reduced motion” */
 @media (prefers-reduced-motion: reduce) {
   * {
     animation-duration: 0.01ms !important;
@@ -149,65 +151,11 @@
   }
 }
 
-/* ========== Skeleton Loading ========== */
-.skeleton-card {
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 12px;
-}
-
-.sk {
-  position: relative;
-  overflow: hidden;
-  background: #e5e7eb;
-  border-radius: 8px;
-}
-.sk::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  transform: translateX(-100%);
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.55),
-    transparent
-  );
-  animation: shimmer 1.2s infinite;
-}
-
-.sk-img {
-  height: 160px;
-  margin-bottom: 12px;
-}
-.sk-line {
-  height: 14px;
-  margin-bottom: 8px;
-}
-.sk-line.short {
-  width: 60%;
-}
-.sk-price {
-  height: 18px;
-  width: 40%;
-  margin: 10px 0;
-}
-.sk-btn {
-  height: 36px;
-  border-radius: 10px;
-}
-
-/* ========== Animaciones ========== */
-@keyframes shimmer {
-  100% {
-    transform: translateX(100%);
-  }
-}
-
+/* Animaciones utilitarias */
 .fade-in > * {
   animation: fadeIn 220ms ease-out both;
 }
+
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -216,5 +164,92 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* Skeleton Loading (shimmer único) */
+.skeleton-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Shimmer por background-position (una sola definición) */
+@keyframes shimmer {
+  0% {
+    background-position: -400px 0;
+  }
+  100% {
+    background-position: 400px 0;
+  }
+}
+
+.skeleton-card .skeleton-box,
+.skeleton-card .skeleton-line,
+.skeleton-card .skeleton-pill {
+  background: #e5e7eb;
+  background-image: linear-gradient(
+    90deg,
+    #e5e7eb 0%,
+    #f3f4f6 20%,
+    #e5e7eb 40%,
+    #e5e7eb 100%
+  );
+  background-repeat: no-repeat;
+  background-size: 800px 100%;
+  animation: shimmer 1.1s linear infinite forwards;
+  border-radius: 8px;
+}
+
+/* Imagen “fake” del card */
+.skeleton-card .product-image {
+  padding: 0;
+}
+
+.skeleton-card .skeleton-box.image {
+  width: 100%;
+  height: 160px; /* ajustá si tu card usa otra altura */
+  border-radius: 12px 12px 0 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+/* Líneas y chips */
+.skeleton-line {
+  height: 12px;
+  margin-top: 8px;
+}
+
+.skeleton-tags {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.skeleton-pill {
+  width: 72px;
+  height: 22px;
+  border-radius: 999px;
+}
+
+/* Utilitarios de ancho */
+.w-70 {
+  width: 70%;
+}
+.w-40 {
+  width: 40%;
+}
+.w-30 {
+  width: 30%;
+}
+
+/* Desactiva shimmer si el usuario reduce movimiento */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-card .skeleton-box,
+  .skeleton-card .skeleton-line,
+  .skeleton-card .skeleton-pill {
+    animation: none !important;
   }
 }

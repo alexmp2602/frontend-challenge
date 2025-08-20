@@ -1,239 +1,166 @@
-# SWAG Frontend Challenge – Solución de Alex Pereyra
+# SWAG Frontend Challenge – Solución
 
-Este repositorio contiene **mi solución al challenge de Frontend Developer** propuesto por SWAG.
+Catálogo de productos con React + TypeScript, carrito con variantes, filtros avanzados y simulador de cotización. Enfocado en UX, accesibilidad y performance.
 
-## Links de la entrega
-- Repositorio: https://github.com/alexmp2602/frontend-challenge
-- Demo en Vercel: https://frontend-challenge-swag.vercel.app/
+## 🔗 Links
+- Repo: https://github.com/alexmp2602/frontend-challenge
+- Demo: https://frontend-challenge-swag.vercel.app/
 
-## Notas Personales
-- Actualicé dependencias en `package.json` para compatibilidad con Node vXX.  
-- Corregí los bugs reportados en el enunciado.  
-- Funcionalidades implementadas:  
-   - Carrito de compras con persistencia en `localStorage`  
-   - Filtros avanzados (proveedor, rango de precios, reset)  
-   - Simulador de cotización con resumen exportable  
-   - Mejoras UX: loading states, validaciones y mensajes de error claros  
-   - Se agregaron pequeñas optimizaciones de accesibilidad y mobile.
-
-## Instalación Rápida
-
-npm install
-npm run dev
-
-## Build de Producción
-
-npm run build
-npm run preview
-
-# SWAG Frontend Challenge
-
-Tiempo estimado: 45-90 minutos
-Objetivo: Crear un mini catálogo de productos funcional con React + TypeScript.
-
----
-
-## Comenzar
-
-# 1. Clonar el repositorio
+## ⚡️ Quick Start
+```bash
+# 1) Clonar e instalar
 git clone https://github.com/alexmp2602/frontend-challenge
 cd frontend-challenge
-
-# 2. Instalar dependencias
 npm install
 
-# 3. Iniciar el servidor de desarrollo
+# 2) Desarrollo
 npm run dev
 
-# 4. Abrir en el navegador
-http://localhost:3000
+# 3) Producción
+npm run build
+npm run preview
+```
+---
+
+## ✅ Qué entrego
+
+### 1. Bugs corregidos
+- **Búsqueda case-insensitive** y ampliada a `name/sku/supplier/category`.
+- **Ordenamiento** por nombre, precio y stock.
+- **Estados de producto**: `active/pending/inactive` con badges correctos (el “pending” ya no parece “disponible”).
+- **Formatos CLP** con `Intl.NumberFormat("es-CL")`.
+- **Cantidad máxima/mínima** validada y “sanitizada” (clamp + bloqueo de `e/E/+/-/.` en inputs numéricos).
+- **Price breaks**: cálculo del **mejor** precio unitario elegible (`bestUnitPrice`) y selección directa desde la UI.
+
+> Nota: issues de **datos** (stock/cantidad de productos) se dejan como dataset de ejemplo; la app es resiliente si cambian.
+
+### 2. Funcionalidades implementadas
+- **Carrito de compras**
+  - Agregar productos (con variantes color/talle)
+  - **Contador** en el header + **subtotal** en tooltip
+  - **Persistencia** en `localStorage` (con versión + migración + debounce + sync entre pestañas)
+- **Filtros avanzados**
+  - **Proveedor** (checkbox múltiple)
+  - **Rango de precios** (min/max numéricos sanitizados)
+  - **Limpiar todo** (estado deshabilitado si no hay filtros activos)
+- **Simulador de cotización**
+  - Form con empresa/nombre/email/notas (validación de email)
+  - Cálculo con **descuentos por volumen**
+  - **Exportar JSON** y **vista imprimible** (para PDF del navegador)
+- **Mejoras de UX**
+  - **Skeleton** en grillas durante recomputación
+  - Transiciones sutiles + `prefers-reduced-motion`
+  - **Toasts** de feedback (info/success/warning/error)
+
+### 3. Creatividad y mejoras
+- **Performance**
+  - **Lazy loading** de rutas con `Suspense`
+  - `useMemo`/función pura para compute de filtros/orden
+  - Persistencia **debounced** y **sync multi-pestaña** (`storage` event)
+- **Accesibilidad**
+  - Foco visible y consistente, `aria-label/aria-live`, `aria-pressed`
+  - Labels ocultos “visually-hidden” para inputs
+  - Inputs numéricos sin caracteres inválidos, `onWheel` blur
+  - Skip-link y estados deshabilitados accesibles
+- **Mobile**
+  - Layouts responsivos (grid adaptable, summary sticky en desktop)
+  - Botoneras en columna, touch targets cómodos
+- **Detalles extra**
+  - **Color chips reales**: mapeo ES/EN/HEX y **detección de colores claros** para bordes visibles (p. ej. blanco)
+  - **Export/Print** en carrito y cotización con plantillas listas para PDF
+  - Componentes con comentarios concisos y consistentes
 
 ---
 
-## Autor
+## 🧱 Arquitectura (resumen)
+- **Estado global del carrito**: `CartContext`  
+  - `add/update/remove/clear`, `count`, `subtotal`
+  - `variantKey(id|color|size)` para actualizar exactamente la variante
+  - `bestUnitPrice(qty, basePrice, breaks)` para price breaks
+  - Persistencia `{ v: 1, items }` + migración del formato antiguo
+- **Toasts**: `ToastContext` (sin dependencia externa)
+- **Ruteo**: `react-router-dom`, **lazy** (`ProductList`, `ProductDetail`, `CartPage`, `NotFound`)
+- **UI**
+  - `ProductList` + `ProductFilters` + `ProductCard`
+  - `ProductDetail` + `PricingCalculator`
+  - `CartPage` con export/print
+
+---
+
+## 🧪 Cómo probar rápido
+
+1) **Búsqueda y filtros**
+- Buscar por nombre, SKU, proveedor o categoría.
+- Activar proveedores; ajustar precios min/max.
+- Usar “Limpiar filtros” (queda desactivado si no hay filtros activos).
+
+2) **Price breaks**
+- En producto: subir cantidad hasta cruzar los umbrales → baja el **precio unitario** y aparece **descuento**.
+- Clickear un break aplica su cantidad mínima.
+
+3) **Carrito**
+- Agregar productos (con color/talle si aplica).
+- Cambiar cantidades en el carrito; se recalcula unitario si cambia el break.
+- Exportar **JSON** o **Imprimir/PDF**.
+
+4) **Cotización**
+- Completar empresa/nombre/email; exportar **JSON** o **Imprimir/PDF**.
+- Email inválido muestra validación.
+
+5) **Accesibilidad/UX**
+- Navegar sólo con teclado (foco visible y orden)
+- `prefers-reduced-motion`: animaciones minimizadas
+- Mobile: cards en 1 columna, botones full-width
+
+---
+
+## 🗂️ Estructura relevante
+```
+src/
+  components/
+    Header.tsx
+    PricingCalculator.tsx
+    ProductCard.tsx
+    ProductFilters.tsx
+    ScrollToTop.tsx
+  context/
+    CartContext.tsx
+    ToastContext.tsx
+  pages/
+    ProductList.tsx
+    ProductDetail.tsx
+    CartPage.tsx
+    NotFound.tsx
+  utils/
+    colors.ts // mapeo ES/EN + hex + detección "isLightColor"
+  data/
+    products.ts
+```
+
+---
+
+## 📝 Convenciones y DX
+- TypeScript estricto en componentes clave
+- Comentarios **breves** y normalizados
+- Estilos en CSS modular por vista/componente
+- Commits sugeridos:  
+  - `feat(cart): variant-safe updates + debounced persistence`  
+  - `feat(filters): supplier & price range + clear state`  
+  - `feat(quote): export json & print template`  
+  - `fix(pricing): bestUnitPrice + input guards`  
+  - `ux(a11y): focus-visible, aria-* and reduced motion`  
+  - `perf(app): route-level code splitting + memoized compute`  
+
+---
+
+## 🚧 Limitaciones / Next
+- Filtros no persisten en URL (se podría agregar `searchParams`).
+- Sin paginación/virtualización para catálogos masivos (posible mejora).
+- Dataset de productos es mock: validado para UX, no para exhaustividad.
+
+---
+
+## 👤 Autor
 **Alex Pereyra**  
-- LinkedIn: https://linkedin.com/in/alex-pereyra-dev
+- LinkedIn: https://linkedin.com/in/alex-pereyra-dev  
 - Portafolio: https://www.alexpereyra.dev
-
----
-
-## 📋 Tu Misión
-
-Eres el desarrollador frontend de **SWAG Chile** y necesitas completar un catálogo de productos para el lanzamiento. El diseño está implementado, pero hay **bugs que corregir** y **funcionalidades que completar**.
-
-### **Lo que YA está funcionando:**
-✅ Estructura básica del proyecto  
-✅ Diseño y estilos CSS  
-✅ Navegación entre páginas  
-✅ Datos de productos mock  
-
-### **Lo que NECESITAS hacer:**
-
-#### **🐛 PARTE 1: Detección y Corrección de Bugs (40 puntos)**
-
-Encuentra y corrige estos 8 bugs críticos:
-
-1. **Bug de Búsqueda:** La búsqueda es case-sensitive y no encuentra productos
-2. **Bug de Ordenamiento:** Falta implementar ordenamiento por precio
-3. **Bug de Estado:** Productos "pending" se muestran como "disponibles"
-4. **Bug de Stock:** Un producto aparece sin stock cuando debería tener 150 unidades
-5. **Bug de Datos:** Faltan 14 productos para llegar al total prometido de 20
-6. **Bug de Cálculo:** La calculadora de precios no encuentra el mejor descuento por volumen
-7. **Bug de Formato:** Los precios no muestran formato chileno (CLP)
-8. **Bug de Validación:** No hay validación de cantidad máxima en inputs
-
-#### **🛠️ PARTE 2: Implementación de Funcionalidades (40 puntos)**
-
-Implementa estas 4 funcionalidades clave:
-
-1. **Carrito de Compras:**
-   - Agregar productos al carrito
-   - Mostrar contador de items en el header
-   - Persistir carrito en localStorage
-
-2. **Filtros Avanzados:**
-   - Filtro por proveedor
-   - Filtro por rango de precios
-   - Limpiar todos los filtros
-
-3. **Simulador de Cotización:**
-   - Formulario con datos de empresa
-   - Cálculo de precio final con descuentos
-   - Generar resumen en formato exportable
-
-4. **Mejoras de UX:**
-   - Loading states en la aplicación
-   - Animaciones suaves en transiciones
-   - Mensajes de error user-friendly
-
-#### **🎨 PARTE 3: Creatividad y Mejoras (20 puntos)**
-
-Sorpréndenos con mejoras que creas importantes:
-
-- **Performance:** Optimizaciones que consideres necesarias
-- **Accesibilidad:** Mejoras para usuarios con discapacidades  
-- **Mobile:** Optimizaciones para dispositivos móviles
-- **Funcionalidades extra:** Lo que creas que falta para una mejor experiencia
-
----
-
-## 📊 Cómo te Evaluamos
-
-### **Sistema de Puntos:**
-- 🐛 **Bugs corregidos:** 5 puntos cada uno (max 40 pts)
-- 🛠️ **Funcionalidades:** 10 puntos cada una (max 40 pts)  
-- 🎨 **Creatividad:** Hasta 20 puntos extra
-- ⚡ **Velocidad:** Bonus por completarlo en la ventana de tiempo asignada
-
-### **Criterios de Evaluación:**
-1. **Funcionamiento:** ¿La aplicación corre sin errores?
-2. **Calidad del código:** ¿Es limpio y mantenible?
-3. **Solución de problemas:** ¿Detectaste y solucionaste los bugs?
-4. **Implementación:** ¿Las nuevas funcionalidades funcionan correctamente?
-5. **UX/UI:** ¿La experiencia de usuario es fluida?
-6. **Innovación:** ¿Agregaste valor extra no solicitado?
-
----
-
-## 🎯 Consejos para el Éxito
-
-### **⚡ Para máximo puntaje:**
-- **Lee TODO este README** antes de empezar a codear
-- **Prioriza los bugs** antes que las funcionalidades nuevas
-- **Testea cada cambio** para asegurar que funciona
-- **Comenta tu código** si haces algo complejo
-- **Haz commits descriptivos** para mostrar tu proceso
-
-### **🔍 Pistas para encontrar bugs:**
-- Revisa `src/data/products.ts` - hay inconsistencias de datos
-- Los filtros en `ProductList.tsx` tienen lógica incorrecta
-- La calculadora en `PricingCalculator.tsx` no calcula bien
-- Algunos estados de producto no se manejan correctamente
-
-### **💡 Ideas para funcionalidades:**
-- El carrito puede ser un contexto de React
-- Los filtros pueden usar URL params para compartir links
-- Las cotizaciones pueden generar un PDF o enviar email
-- Los loading states mejoran mucho la percepción de velocidad
-
-### **⚠️ Lo que NO tienes que hacer:**
-- ❌ No cambies la estructura de carpetas principal
-- ❌ No instales librerías pesadas innecesarias
-- ❌ No reescribas todo desde cero
-- ❌ No te preocupes por el backend (usa mocks)
-
----
-
-## 📤 Cómo Entregar
-
-### **Cuando termines:**
-
-1. **Asegúrate que todo funciona:**
-   ```bash
-   npm run build
-   npm run preview
-   ```
-
-2. **Haz push a tu repositorio GitHub**
-
-3. **Despliega en Vercel/Netlify** (recomendado)
-
-4. **Envía tu solución automáticamente:**
-   
-   ## 🎯 **[ENVIAR CHALLENGE →](https://swag-challenge-form.vercel.app)**
-   
-   ⚠️ **IMPORTANTE:** Usa el formulario oficial arriba para enviar tu solución.
-   
-   **Información requerida:**
-   - 🔗 URL de tu repositorio GitHub (fork con tu solución)
-   - 🚀 URL de la aplicación desplegada (opcional)
-   - 👤 Tu nombre completo
-   - 📧 Tu email de contacto
-
----
-
-## 🏆 Pasos Siguientes
-
-- **Evaluación:** Tu solución será evaluada automáticamente tras el envío
-- **Revisión:** Nuestro equipo evaluará tu solución en 24-48 horas
-- **Feedback:** Si pasas a la siguiente fase, te contactaremos para una video llamada de 15 minutos
-- **Decisión final:** Dentro de 48 horas de la entrega
-
----
-
-## 🤔 ¿Preguntas?
-
-**NO** puedes hacer preguntas durante el challenge - parte del test es manejar ambigüedad de forma autónoma. Sin embargo, si tienes problemas técnicos para ejecutar el proyecto, puedes escribir a `dev@swag.cl`.
-
----
-
-## 🎮 Ready? ¡Let's Code!
-
-**Recuerda:** Buscamos desarrolladores que puedan **resolver problemas reales** bajo presión, **entregar resultados rápidos** y **pensar como usuarios**. 
-
-**¡Demuéstranos de qué estás hecho! 🚀**
-
----
-
-## Nota Importante
-
-Agradecemos tu postulación para el cargo de Desarrollador/a Front-end en SWAG. Debido a la gran cantidad de postulaciones y a la urgencia de nuestro proceso, hemos diseñado este desafío técnico para evaluar de forma rápida y justa a todos los candidatos.
-
-**Sobre el Desafío**
-Entendemos que este desafío es más extenso de lo habitual. Lo hemos creado para evaluar tus habilidades de resolución de problemas en un entorno realista. Queremos ser transparentes contigo:
-
-**Propósito:**
-Es una prueba diseñada exclusivamente para este proceso. El objetivo es que demuestres tus capacidades en un proyecto que simula las condiciones de trabajo que encontrarás con nosotros.
-
-**Ética y Respeto:**
-Valoramos y respetamos tu tiempo y trabajo. El código que desarrolles será revisado únicamente con fines de evaluación y bajo ninguna circunstancia se utilizará en nuestro producto final.
-
-**Flujo del proceso:**
-- Envías tu solución.
-- Nuestro sistema la evalúa de forma automática y te envía un correo con tu puntaje.
-- Si tu puntaje es excepcional, te contactaremos para agendar una entrevista por video.
-- Si no eres seleccionado, puedes eliminar tu repositorio una vez que recibas el correo con tu puntaje.
-
-Agradecemos tu comprensión e interés.
-
----

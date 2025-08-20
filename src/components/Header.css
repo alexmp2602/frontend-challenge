@@ -23,7 +23,7 @@
   gap: 12px;
   text-decoration: none;
   color: white;
-  transition: opacity 0.2s;
+  transition: opacity 0.2s ease;
 }
 
 .logo:hover {
@@ -63,14 +63,14 @@
   gap: 8px;
   padding: 8px 16px;
   border-radius: 6px;
-  transition: all 0.2s;
   background: none;
   border: none;
   cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease, opacity 0.2s ease;
 }
 
 .nav-link:hover {
-  color: white;
+  color: #fff;
   background: rgba(255, 255, 255, 0.1);
 }
 
@@ -85,31 +85,6 @@
   gap: 12px;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-  .header-content {
-    gap: 16px;
-  }
-
-  .nav {
-    gap: 16px;
-  }
-
-  .nav-link {
-    padding: 6px 12px;
-  }
-
-  .logo-text {
-    display: none;
-  }
-}
-
-@media (max-width: 480px) {
-  .nav {
-    display: none;
-  }
-}
-
 /* Cart badge */
 .cart-button {
   position: relative;
@@ -118,6 +93,7 @@
   gap: 6px;
 }
 
+/* ÚNICA definición: badge con alto contraste sobre header oscuro */
 .cart-badge {
   display: inline-flex;
   align-items: center;
@@ -126,15 +102,69 @@
   height: 18px;
   padding: 0 6px;
   border-radius: 9999px;
-  background: #10b981; /* verde */
-  color: #fff;
+  background: #fff;
+  color: #1a1a1a;
   font-size: 12px;
-  font-weight: 600;
-  line-height: 18px;
+  font-weight: 700;
+  line-height: 1;
   margin-left: 6px;
 }
 
 .cart-count {
   margin-left: 6px;
   color: rgba(255, 255, 255, 0.7); /* (0) cuando está vacío */
+}
+
+/* Enfoque visible para teclado */
+.nav-link:focus-visible,
+.logo:focus-visible,
+.btn:focus-visible {
+  outline: 2px solid #9aa8ff;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Estado activo del NavLink */
+.nav-link.active {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .header-content {
+    gap: 16px;
+  }
+  .nav {
+    gap: 16px;
+  }
+  .nav-link {
+    padding: 6px 12px;
+  }
+  .logo-text {
+    display: none;
+  }
+}
+
+/* Mantener íconos en mobile y ocultar solo el texto */
+@media (max-width: 480px) {
+  .nav {
+    gap: 8px;
+  }
+  /* Oculta “Catálogo” y “Carrito”, pero NO el icono ni el badge */
+  .nav .nav-link > span:not(.material-icons):not(.cart-badge):not(.cart-count) {
+    display: none;
+  }
+  .nav-link {
+    padding: 6px 10px;
+  }
+}
+
+/* Respeta usuarios con “reducir movimiento” */
+@media (prefers-reduced-motion: reduce) {
+  .logo,
+  .nav-link,
+  .btn {
+    transition: none !important;
+  }
 }

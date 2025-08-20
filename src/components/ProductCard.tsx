@@ -1,12 +1,12 @@
 import { Link } from "react-router-dom";
 import { Product, PriceBreak } from "../types/Product";
+import { resolveColor } from "../utils/colors";
 import "./ProductCard.css";
 
 interface ProductCardProps {
   product: Product;
 }
 
-// Currency formatter (CLP, no decimals)
 const formatCLP = (n: number) =>
   new Intl.NumberFormat("es-CL", {
     style: "currency",
@@ -14,16 +14,12 @@ const formatCLP = (n: number) =>
     maximumFractionDigits: 0,
   }).format(n);
 
-// Pick the best (lowest) unit price from price breaks
 function getBestPriceBreak(priceBreaks?: PriceBreak[]) {
   if (!priceBreaks || priceBreaks.length === 0) return null;
-  // choose the break with the **lowest** unit price
-  const best = [...priceBreaks].sort((a, b) => a.price - b.price)[0];
-  return best;
+  return [...priceBreaks].sort((a, b) => a.price - b.price)[0];
 }
 
 const ProductCard = ({ product }: ProductCardProps) => {
-  // Status badge
   const getStatusBadge = (status: Product["status"]) => {
     switch (status) {
       case "active":
@@ -35,7 +31,6 @@ const ProductCard = ({ product }: ProductCardProps) => {
           <span className="status-badge status-inactive l1">No disponible</span>
         );
       case "pending":
-        // pending should NOT look like available
         return (
           <span className="status-badge status-pending l1">Pendiente</span>
         );
@@ -44,15 +39,13 @@ const ProductCard = ({ product }: ProductCardProps) => {
     }
   };
 
-  // Stock indicator
   const getStockStatus = (stock: number) => {
-    if (stock === 0) {
+    if (stock === 0)
       return <span className="stock-status out-of-stock l1">Sin stock</span>;
-    } else if (stock < 10) {
+    if (stock < 10)
       return (
         <span className="stock-status low-stock l1">Stock bajo ({stock})</span>
       );
-    }
     return (
       <span className="stock-status in-stock l1">{stock} disponibles</span>
     );
@@ -68,7 +61,6 @@ const ProductCard = ({ product }: ProductCardProps) => {
         className="product-link"
         aria-label={`Ver detalle de ${product.name}`}
       >
-        {/* Product Image */}
         <div className="product-image">
           {product.image ? (
             <img
@@ -82,12 +74,9 @@ const ProductCard = ({ product }: ProductCardProps) => {
               <span className="material-icons">image</span>
             </div>
           )}
-
-          {/* Status Badge */}
           <div className="product-status">{getStatusBadge(product.status)}</div>
         </div>
 
-        {/* Product Info */}
         <div className="product-info">
           <div className="product-header">
             <h3 className="product-name p1-medium">{product.name}</h3>
@@ -101,15 +90,13 @@ const ProductCard = ({ product }: ProductCardProps) => {
               </span>
               <span className="l1">{product.category}</span>
             </div>
-
             {getStockStatus(product.stock)}
           </div>
 
-          {/* Features (limit to 4 chips) */}
-          {product.features && product.features.length > 0 && (
+          {product.features?.length ? (
             <div className="product-features">
-              {product.features.slice(0, 4).map((feature, index) => (
-                <span key={index} className="feature-tag l1">
+              {product.features.slice(0, 4).map((feature, i) => (
+                <span key={i} className="feature-tag l1">
                   {feature}
                 </span>
               ))}
@@ -119,22 +106,21 @@ const ProductCard = ({ product }: ProductCardProps) => {
                 </span>
               )}
             </div>
-          )}
+          ) : null}
 
-          {/* Colors preview */}
-          {product.colors && product.colors.length > 0 && (
+          {product.colors?.length ? (
             <div className="product-colors">
               <span className="colors-label l1">
                 {product.colors.length} colores:
               </span>
               <div className="colors-preview">
-                {product.colors.slice(0, 3).map((color, index) => (
+                {product.colors.slice(0, 3).map((c, i) => (
                   <div
-                    key={index}
+                    key={`${c}-${i}`}
                     className="color-dot"
-                    title={color}
-                    style={{ background: color }}
-                    aria-label={`Color ${color}`}
+                    title={c}
+                    aria-label={`Color ${c}`}
+                    style={{ background: resolveColor(c) }}
                   />
                 ))}
                 {product.colors.length > 3 && (
@@ -144,17 +130,15 @@ const ProductCard = ({ product }: ProductCardProps) => {
                 )}
               </div>
             </div>
-          )}
+          ) : null}
         </div>
       </Link>
 
-      {/* Footer */}
       <div className="product-footer">
         <div className="price-section">
           <div className="current-price p1-medium">
             {formatCLP(product.basePrice)}
           </div>
-
           {bestBreak && (
             <div className="discount-info">
               <span className="discount-price l1">

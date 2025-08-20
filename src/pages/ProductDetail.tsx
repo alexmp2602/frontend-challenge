@@ -4,10 +4,10 @@ import { products } from "../data/products";
 import { Product } from "../types/Product";
 import PricingCalculator from "../components/PricingCalculator";
 import { useCart } from "../context/CartContext";
-import { useToast } from "../context/ToastContext"; // ✅ NEW
+import { useToast } from "../context/ToastContext";
 import "./ProductDetail.css";
 
-/** Límites seguros para la cantidad */
+/* Cantidad segura */
 function getQtyLimits(product: Product) {
   const min = Math.max(1, product.minQuantity ?? 1);
   const hardMax = 10000;
@@ -18,9 +18,122 @@ function getQtyLimits(product: Product) {
   return { min, max };
 }
 
+/* Evita chars inválidos en <input type="number"> */
 const preventInvalidChars = (e: React.KeyboardEvent<HTMLInputElement>) => {
   if (["e", "E", "+", "-", "."].includes(e.key)) e.preventDefault();
 };
+
+/* ===== Helpers de colores (map, normalizador y contraste) ===== */
+const HEX = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i;
+const normalizeKey = (s: string) =>
+  s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+
+const NAME_TO_HEX: Record<string, string> = {
+  // básicos ES/EN
+  negro: "#111827",
+  black: "#111827",
+  blanco: "#ffffff",
+  white: "#ffffff",
+  rojo: "#ef4444",
+  red: "#ef4444",
+  verde: "#10b981",
+  green: "#10b981",
+  azul: "#3b82f6",
+  blue: "#3b82f6",
+  amarillo: "#facc15",
+  yellow: "#facc15",
+  naranja: "#f97316",
+  orange: "#f97316",
+  morado: "#8b5cf6",
+  violeta: "#8b5cf6",
+  purple: "#8b5cf6",
+  rosa: "#f472b6",
+  pink: "#f472b6",
+  gris: "#9ca3af",
+  gray: "#9ca3af",
+  plata: "#cbd5e1",
+  plateado: "#cbd5e1",
+  silver: "#cbd5e1",
+  dorado: "#f59e0b",
+  oro: "#f59e0b",
+  gold: "#f59e0b",
+
+  // comunes de catálogo
+  "azul marino": "#0b1e3d",
+  marino: "#0b1e3d",
+  navy: "#0b1e3d",
+  celeste: "#38bdf8",
+  lila: "#a78bfa",
+  marron: "#8B4513",
+  marrón: "#8B4513",
+  cafe: "#6F4E37",
+  café: "#6F4E37",
+  beige: "#f5f5dc",
+  hueso: "#f7f7f0",
+  crema: "#f7efe1",
+  carmesi: "#dc2626",
+  turquesa: "#14b8a6",
+  lima: "#84cc16",
+  plateado2: "#d1d5db",
+};
+
+function cssColor(label: string): string {
+  if (!label) return "#e5e7eb";
+  const raw = label.trim();
+  if (HEX.test(raw)) return raw;
+  return NAME_TO_HEX[normalizeKey(raw)] ?? raw; // si es css keyword válida, el navegador la toma
+}
+
+function hexToRgb(hex: string) {
+  let h = hex.replace("#", "");
+  if (h.length === 3)
+    h = h
+      .split("")
+      .map((c) => c + c)
+      .join("");
+  const n = parseInt(h, 16);
+  return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+}
+
+function isLightColor(input: string): boolean {
+  const v = cssColor(input).toLowerCase();
+
+  // atajos para claro
+  if (
+    [
+      "white",
+      "#fff",
+      "#ffffff",
+      "blanco",
+      "beige",
+      "ivory",
+      "hueso",
+      "crema",
+    ].includes(v)
+  ) {
+    return true;
+  }
+
+  if (v.startsWith("#")) {
+    const { r, g, b } = hexToRgb(v);
+    const toLin = (x: number) => {
+      const c = x / 255;
+      return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+    };
+    const R = toLin(r),
+      G = toLin(g),
+      B = toLin(b);
+    const L = 0.2126 * R + 0.7152 * G + 0.0722 * B; // luminancia
+    return L > 0.72;
+  }
+
+  return false;
+}
+/* ============================================================= */
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -30,15 +143,15 @@ const ProductDetail = () => {
   const [quantity, setQuantity] = useState(1);
 
   const { add } = useCart();
-  const { show } = useToast(); // ✅ NEW
+  const { show } = useToast();
 
-  // Hook SIEMPRE llamado (con fallback cuando product es null)
+  /* Límites (fallback si no hay producto) */
   const { min, max } = useMemo(() => {
     if (!product) return { min: 1, max: 10000 };
     return getQtyLimits(product);
   }, [product]);
 
-  // Cargar producto y defaults
+  /* Cargar producto + defaults */
   useEffect(() => {
     const pid = Number(id);
     const found = Number.isFinite(pid)
@@ -72,16 +185,14 @@ const ProductDetail = () => {
       show("Producto no disponible", "error");
       return;
     }
-
     add(product, quantity, {
       color: selectedColor || undefined,
       size: selectedSize || undefined,
     });
-
-    show("Producto agregado al carrito", "success"); // ✅ toast en lugar de alert
+    show("Producto agregado al carrito", "success");
   };
 
-  // UI de no encontrado
+  /* No encontrado */
   if (!product) {
     return (
       <div className="container">
@@ -180,19 +291,28 @@ const ProductDetail = () => {
                   Colores disponibles
                 </h3>
                 <div className="color-options">
-                  {product.colors.map((color) => (
-                    <button
-                      key={color}
-                      className={`color-option ${
-                        selectedColor === color ? "selected" : ""
-                      }`}
-                      onClick={() => setSelectedColor(color)}
-                      type="button"
-                    >
-                      <div className="color-preview" />
-                      <span className="l1">{color}</span>
-                    </button>
-                  ))}
+                  {product.colors.map((color) => {
+                    const value = cssColor(color);
+                    const light = isLightColor(color);
+                    const selected = selectedColor === color;
+                    return (
+                      <button
+                        key={color}
+                        type="button"
+                        className={`color-option ${selected ? "selected" : ""}`}
+                        onClick={() => setSelectedColor(color)}
+                        aria-pressed={selected}
+                        title={color}
+                      >
+                        <div
+                          className={`color-preview ${light ? "is-light" : ""}`}
+                          style={{ background: value }}
+                          aria-hidden
+                        />
+                        <span className="l1">{color}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             ) : null}
@@ -204,23 +324,26 @@ const ProductDetail = () => {
                   Tallas disponibles
                 </h3>
                 <div className="size-options">
-                  {product.sizes.map((size) => (
-                    <button
-                      key={size}
-                      className={`size-option ${
-                        selectedSize === size ? "selected" : ""
-                      }`}
-                      onClick={() => setSelectedSize(size)}
-                      type="button"
-                    >
-                      <span className="l1">{size}</span>
-                    </button>
-                  ))}
+                  {product.sizes.map((size) => {
+                    const selected = selectedSize === size;
+                    return (
+                      <button
+                        key={size}
+                        type="button"
+                        className={`size-option ${selected ? "selected" : ""}`}
+                        onClick={() => setSelectedSize(size)}
+                        aria-pressed={selected}
+                        title={`Talla ${size}`}
+                      >
+                        <span className="l1">{size}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             ) : null}
 
-            {/* Acciones rápidas */}
+            {/* Acciones */}
             <div className="product-actions">
               <div className="quantity-selector">
                 <label className="quantity-label l1">Cantidad:</label>

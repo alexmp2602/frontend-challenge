@@ -1,21 +1,17 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import ProductCard from "../components/ProductCard";
 import ProductFilters from "../components/ProductFilters";
-import {
-  products as allProducts,
-  suppliers,
-  categories,
-} from "../data/products";
+import { products as allProducts } from "../data/products";
 import { Product } from "../types/Product";
 import "./ProductList.css";
 
 type SortKey = "name" | "price" | "stock";
 
-const ProductList = () => {
-  const [filteredProducts, setFilteredProducts] =
-    useState<Product[]>(allProducts);
+const SKELETON_COUNT = 8;
+const LOAD_DELAY_MS = 350;
 
-  // Filtros básicos
+const ProductList = () => {
+  // Filtros y orden
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<SortKey>("name");
@@ -25,135 +21,117 @@ const ProductList = () => {
   const [priceMin, setPriceMin] = useState<number | "">("");
   const [priceMax, setPriceMax] = useState<number | "">("");
 
-  /**
-   * Aplica todos los filtros + orden al catálogo completo
-   */
-  const filterProducts = (
-    category: string,
-    search: string,
-    sort: SortKey,
-    supplierIds: string[],
-    min: number | "",
-    max: number | ""
-  ) => {
-    let list = [...allProducts];
+  // Estado de lista + loading (skeleton)
+  const [filteredProducts, setFilteredProducts] =
+    useState<Product[]>(allProducts);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
-    // Categoría
-    if (category !== "all") {
-      list = list.filter((p) => p.category === category);
-    }
+  // Función pura que aplica TODOS los filtros/orden
+  const compute = useMemo(
+    () =>
+      (
+        category: string,
+        search: string,
+        sort: SortKey,
+        suppliers: string[],
+        min: number | "",
+        max: number | ""
+      ) => {
+        let out = [...allProducts];
 
-    // Búsqueda (case-insensitive) en name/sku/supplier/category
-    const q = search.trim().toLowerCase();
-    if (q) {
-      list = list.filter((p) => {
-        const name = p.name?.toLowerCase() ?? "";
-        const sku = p.sku?.toLowerCase() ?? "";
-        const supplier = p.supplier?.toLowerCase() ?? "";
-        const cat = p.category?.toLowerCase() ?? "";
-        return (
-          name.includes(q) ||
-          sku.includes(q) ||
-          supplier.includes(q) ||
-          cat.includes(q)
-        );
-      });
-    }
+        // Category
+        if (category !== "all") {
+          out = out.filter((p) => p.category === category);
+        }
 
-    // Proveedores (si hay seleccionados)
-    if (supplierIds.length > 0) {
-      const setIds = new Set(supplierIds);
-      list = list.filter((p) => setIds.has(p.supplier));
-    }
+        // Search (case-insensitive en name/sku/supplier/category)
+        const q = search.trim().toLowerCase();
+        if (q) {
+          out = out.filter((p) => {
+            const name = p.name?.toLowerCase() ?? "";
+            const sku = p.sku?.toLowerCase() ?? "";
+            const supp = p.supplier?.toLowerCase() ?? "";
+            const cat = p.category?.toLowerCase() ?? "";
+            return (
+              name.includes(q) ||
+              sku.includes(q) ||
+              supp.includes(q) ||
+              cat.includes(q)
+            );
+          });
+        }
 
-    // Rango de precios (basePrice en CLP)
-    if (min !== "" || max !== "") {
-      const lo = min === "" ? -Infinity : min;
-      const hi = max === "" ? Infinity : max;
-      const minV = Math.min(lo, hi);
-      const maxV = Math.max(lo, hi);
-      list = list.filter((p) => p.basePrice >= minV && p.basePrice <= maxV);
-    }
+        // Suppliers (si hay seleccionados)
+        if (suppliers.length > 0) {
+          out = out.filter((p) => suppliers.includes(p.supplier));
+        }
 
-    // Orden
-    switch (sort) {
-      case "name":
-        list.sort((a, b) => a.name.localeCompare(b.name));
-        break;
-      case "price":
-        list.sort((a, b) => a.basePrice - b.basePrice); // ascendente
-        break;
-      case "stock":
-        list.sort((a, b) => b.stock - a.stock); // mayor stock primero
-        break;
-    }
+        // Rango de precios (basePrice)
+        if (min !== "" || max !== "") {
+          out = out.filter((p) => {
+            const price = p.basePrice;
+            if (min !== "" && price < min) return false;
+            if (max !== "" && price > max) return false;
+            return true;
+          });
+        }
 
-    setFilteredProducts(list);
-  };
+        // Orden
+        switch (sort) {
+          case "name":
+            out.sort((a, b) => a.name.localeCompare(b.name));
+            break;
+          case "price":
+            out.sort((a, b) => a.basePrice - b.basePrice);
+            break;
+          case "stock":
+            out.sort((a, b) => b.stock - a.stock);
+            break;
+        }
 
-  // Handlers de UI
-  const handleCategoryChange = (category: string) => {
+        return out;
+      },
+    []
+  );
+
+  // Recalcular con un pequeño delay (muestra skeleton)
+  useEffect(() => {
+    setIsLoading(true);
+    const t = setTimeout(() => {
+      const next = compute(
+        selectedCategory,
+        searchQuery,
+        sortBy,
+        selectedSuppliers,
+        priceMin,
+        priceMax
+      );
+      setFilteredProducts(next);
+      setIsLoading(false);
+    }, LOAD_DELAY_MS);
+
+    return () => clearTimeout(t);
+  }, [
+    selectedCategory,
+    searchQuery,
+    sortBy,
+    selectedSuppliers,
+    priceMin,
+    priceMax,
+    compute,
+  ]);
+
+  // Handlers
+  const handleCategoryChange = (category: string) =>
     setSelectedCategory(category);
-    filterProducts(
-      category,
-      searchQuery,
-      sortBy,
-      selectedSuppliers,
-      priceMin,
-      priceMax
-    );
-  };
-
-  const handleSearchChange = (search: string) => {
-    setSearchQuery(search);
-    filterProducts(
-      selectedCategory,
-      search,
-      sortBy,
-      selectedSuppliers,
-      priceMin,
-      priceMax
-    );
-  };
-
-  const handleSortChange = (sort: string) => {
-    const key = (sort as SortKey) || "name";
-    setSortBy(key);
-    filterProducts(
-      selectedCategory,
-      searchQuery,
-      key,
-      selectedSuppliers,
-      priceMin,
-      priceMax
-    );
-  };
-
-  const handleSuppliersChange = (ids: string[]) => {
-    setSelectedSuppliers(ids);
-    filterProducts(
-      selectedCategory,
-      searchQuery,
-      sortBy,
-      ids,
-      priceMin,
-      priceMax
-    );
-  };
-
+  const handleSearchChange = (search: string) => setSearchQuery(search);
+  const handleSortChange = (sort: string) =>
+    setSortBy((sort as SortKey) || "name");
+  const handleSuppliersChange = (ids: string[]) => setSelectedSuppliers(ids);
   const handlePriceChange = (min: number | "", max: number | "") => {
     setPriceMin(min);
     setPriceMax(max);
-    filterProducts(
-      selectedCategory,
-      searchQuery,
-      sortBy,
-      selectedSuppliers,
-      min,
-      max
-    );
   };
-
   const handleClearAll = () => {
     setSelectedCategory("all");
     setSearchQuery("");
@@ -161,13 +139,12 @@ const ProductList = () => {
     setSelectedSuppliers([]);
     setPriceMin("");
     setPriceMax("");
-    filterProducts("all", "", "name", [], "", "");
   };
 
   return (
     <div className="product-list-page">
       <div className="container">
-        {/* Header de página */}
+        {/* Page Header */}
         <div className="page-header">
           <div className="page-info">
             <h1 className="page-title h2">Catálogo de Productos</h1>
@@ -179,22 +156,18 @@ const ProductList = () => {
           <div className="page-stats">
             <div className="stat-item">
               <span className="stat-value p1-medium">
-                {filteredProducts.length}
+                {isLoading ? "…" : filteredProducts.length}
               </span>
               <span className="stat-label l1">productos</span>
             </div>
             <div className="stat-item">
-              <span className="stat-value p1-medium">{categories.length}</span>
+              <span className="stat-value p1-medium">6</span>
               <span className="stat-label l1">categorías</span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-value p1-medium">{suppliers.length}</span>
-              <span className="stat-label l1">proveedores</span>
             </div>
           </div>
         </div>
 
-        {/* Filtros */}
+        {/* Filters */}
         <ProductFilters
           selectedCategory={selectedCategory}
           searchQuery={searchQuery}
@@ -210,17 +183,44 @@ const ProductList = () => {
           onClearAll={handleClearAll}
         />
 
-        {/* Grilla de productos */}
+        {/* Products Section */}
         <div className="products-section">
-          {filteredProducts.length === 0 ? (
+          {isLoading ? (
+            // Skeleton grid
+            <div className="products-grid">
+              {Array.from({ length: SKELETON_COUNT }).map((_, i) => (
+                <div
+                  key={i}
+                  className="product-card skeleton-card"
+                  aria-hidden="true"
+                >
+                  <div className="product-image">
+                    <div className="skeleton-box image" />
+                  </div>
+                  <div className="product-info">
+                    <div className="skeleton-line w-70" />
+                    <div className="skeleton-line w-40" />
+                    <div className="skeleton-tags">
+                      <span className="skeleton-pill" />
+                      <span className="skeleton-pill" />
+                      <span className="skeleton-pill" />
+                    </div>
+                  </div>
+                  <div className="product-footer">
+                    <div className="skeleton-line w-30" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : filteredProducts.length === 0 ? (
             <div className="empty-state">
               <span className="material-icons">search_off</span>
               <h3 className="h2">No hay productos</h3>
               <p className="p1">
-                No se encontraron resultados con los filtros aplicados.
+                No se encontraron productos que coincidan con tu búsqueda.
               </p>
               <button className="btn btn-primary cta1" onClick={handleClearAll}>
-                Limpiar filtros
+                Ver todos los productos
               </button>
             </div>
           ) : (
